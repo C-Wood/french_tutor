@@ -1,10 +1,11 @@
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from langchain_community.llms import Ollama
+from langchain_ollama import OllamaLLM
 
 class ConversationAgent:
     def __init__(self, model_name="llama3"):
         """Initialize the French conversation agent with the specified model."""
-        self.llm = Ollama(model=model_name)
+        self.llm = OllamaLLM(model=model_name)
         self.chat_history = [
             SystemMessage(content="""You are a helpful French language tutor.
             Help users learn French vocabulary, grammar, and practice conversation.

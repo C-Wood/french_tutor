@@ -3,6 +3,7 @@ from src.agents.generator_agent import SentenceGeneratorAgent
 from src.agents.grader_agent import GraderAgent
 from src.french import FrenchUtils
 from src.db import Database
+from src.agents.adaptive_controller import AdaptiveController
 
 def display_welcome():
     print("=" * 50)
@@ -42,72 +43,65 @@ def translation_mode():
     print("\n--- Translation Practice Mode ---")
     print("I'll give you English sentences to translate to French.")
     print("Type 'exit' at any time to return to the main menu.")
-    
+
     try:
         generator = SentenceGeneratorAgent()
         grader = GraderAgent()
         db = Database()
-        
-        # Start a new session
+        controller = AdaptiveController()
         session_id = db.start_session()
-        
+
         while True:
-            # Get difficulty
-            print("\nSelect difficulty level:")
-            print("1. Beginner")
-            print("2. Intermediate")
-            print("3. Advanced")
-            
-            difficulty_choice = input("Choice (1-3): ")
-            
-            if difficulty_choice.lower() == 'exit':
+            # Use adaptive controller to suggest difficulty
+            difficulty = controller.suggest_next_difficulty()
+            print(f"\n[Adaptive Tutor] Suggested difficulty: {difficulty}")
+
+            # Get recent perfect-score sentences
+            recent_perfect = db.get_recent_perfect_english(limit=10, min_score=1.0)
+
+            # Generate a sentence, avoid recent perfect ones
+            max_attempts = 5
+            for _ in range(max_attempts):
+                sentence_data = generator.generate_sentence(difficulty)
+                english = sentence_data["english"]
+                if english not in recent_perfect:
+                    break
+            else:
+                print("Couldn't find a new sentence. Please try again later.")
                 break
-                
-            difficulty_map = {
-                '1': 'beginner',
-                '2': 'intermediate',
-                '3': 'advanced'
-            }
-            
-            difficulty = difficulty_map.get(difficulty_choice, 'beginner')
-            
-            # Generate a sentence
-            sentence_data = generator.generate_sentence(difficulty)
-            english = sentence_data["english"]
+
             correct_french = sentence_data["french"]
-            
+
             print(f"\nTranslate to French: {english}")
             user_translation = input("Your translation: ")
-            
+
             if user_translation.lower() == 'exit':
                 break
-            
-            # Grade the translation
+
             grade_data = grader.grade_translation(correct_french, user_translation)
             score = grade_data["score"]
             feedback = grade_data["feedback"]
-            
-            # Display result
+
             print(f"\nCorrect translation: {correct_french}")
             print(f"Score: {score:.2f}")
             print(f"Feedback: {feedback}")
-            
-            # Save to database
+
             db.save_translation_exercise(
-                session_id, 
-                english, 
-                correct_french, 
-                user_translation, 
-                score, 
-                feedback
+                session_id,
+                english,
+                correct_french,
+                user_translation,
+                score,
+                feedback,
+                difficulty
             )
-            
-            # Ask to continue
+
             cont = input("\nContinue with another sentence? (y/n): ")
             if cont.lower() != 'y':
                 break
-                
+
         db.close()
+        controller.close()
     except Exception as e:
         print(f"Error in translation mode: {e}")
         print("\nMake sure Ollama is running and the selected model is installed.")
