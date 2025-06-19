@@ -24,21 +24,18 @@ class GraderAgent:
     def parse_llm_json(self, response_text):
         """Parse JSON from LLM response with robust error handling."""
         try:
-            # Handle the response (could be string or object)
             if not isinstance(response_text, str):
                 response_text = response_text.content
-            
-            # Clean the response text of control characters
-            # This regex replaces control characters with empty strings
+
+            # Remove control characters
             response_text = re.sub(r'[\x00-\x1F\x7F-\x9F]', '', response_text)
-            
-            # Find JSON in the response
-            response_text = response_text.strip()
-            start_idx = response_text.find('{')
-            end_idx = response_text.rfind('}') + 1
-            
-            if start_idx >= 0 and end_idx > start_idx:
-                json_str = response_text[start_idx:end_idx]
+
+            # Extract the first JSON object
+            match = re.search(r'\{.*?\}', response_text, re.DOTALL)
+            if match:
+                json_str = match.group(0)
+                # Fix invalid backslashes
+                json_str = re.sub(r'\\(?!["\\/bfnrtu])', r"\\\\", json_str)
                 return json.loads(json_str)
             else:
                 raise ValueError("No JSON object found in response")

@@ -2,3 +2,5 @@ langchain>=0.0.267
 langchain-community>=0.0.10
 python-dotenv>=1.0.0
 ollama>=0.1.4
+sentence-transformers>=2.2.2
+scikit-learn>=1.2.0

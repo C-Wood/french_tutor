@@ -1,0 +1,20 @@
+import sqlite3
+
+def fetch_translation_pairs(db_path="data/french_tutor.db"):
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT english_sentence, user_translation, score
+        FROM translation_exercises
+        WHERE english_sentence IS NOT NULL AND user_translation IS NOT NULL AND score IS NOT NULL
+    """)
+    data = cur.fetchall()
+    conn.close()
+    return data
+
+if __name__ == "__main__":
+    data = fetch_translation_pairs()
+    print(f"Loaded {len(data)} translation pairs.")
+    # Example output
+    for row in data[:5]:
+        print(row)

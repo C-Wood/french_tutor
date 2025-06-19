@@ -106,3 +106,4 @@ class Database:
         LIMIT ?
         ''', (difficulty, n))
         return self.cursor.fetchall()
+    

@@ -4,6 +4,7 @@ from src.agents.grader_agent import GraderAgent
 from src.french import FrenchUtils
 from src.db import Database
 from src.agents.adaptive_controller import AdaptiveController
+from src.grade_predictor_util import load_grade_predictor, predict_grade
 
 def display_welcome():
     print("=" * 50)
@@ -50,6 +51,7 @@ def translation_mode():
         db = Database()
         controller = AdaptiveController()
         session_id = db.start_session()
+        reg, model = load_grade_predictor()
 
         while True:
             # Use adaptive controller to suggest difficulty
@@ -77,13 +79,18 @@ def translation_mode():
 
             if user_translation.lower() == 'exit':
                 break
-
+            predicted = predict_grade(english, user_translation, reg, model)
             grade_data = grader.grade_translation(correct_french, user_translation)
+            if not grade_data or "score" not in grade_data or "feedback" not in grade_data:
+                print("Grading failed. This attempt will not be saved.")
+                print("Please try again or check your input/model.")
+                continue  # Skip saving and go to next round
             score = grade_data["score"]
             feedback = grade_data["feedback"]
 
             print(f"\nCorrect translation: {correct_french}")
             print(f"Score: {score:.2f}")
+            print(f"Predicted Score: {predicted:.2f}") 
             print(f"Feedback: {feedback}")
 
             db.save_translation_exercise(
